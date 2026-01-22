@@ -1,15 +1,20 @@
 import json
+import math
 import os
 import re
 from typing import Callable, Any, Optional, Union
 
 from mcdreforged.api.all import *
 
-from location_marker import constants
 from location_marker.storage import LocationStorage, Point, Location
 
+CONFIG_FILE = 'config.json'
 
 class Config(Serializable):
+	plugin_command: str = '!!loc'
+	locations_storage_path: str = './config/locations.json'
+	click_command: str = '/execute in {dim} run tp {x} {y} {x}'
+	coordinate_rounding: bool = False
 	teleport_hint_on_coordinate: bool = True
 	item_per_page: int = 10
 
@@ -34,7 +39,7 @@ def show_help(source: CommandSource):
 其中：
 当§6可选页号§r被指定时，将以每{1}个路标为一页，列出指定页号的路标
 §3关键字§r以及§b路标名称§r为不包含空格的一个字符串，或者一个被""括起的字符串
-'''.format(constants.PREFIX, config.item_per_page, server_inst.get_self_metadata().version).splitlines(True)
+'''.format(config.plugin_command, config.item_per_page, server_inst.get_self_metadata().version).splitlines(True)
 	help_msg_rtext = RTextList()
 	for line in help_msg_lines:
 		result = re.search(r'(?<=§7)!!loc[\w ]*(?=§)', line)
@@ -48,7 +53,17 @@ def show_help(source: CommandSource):
 def get_coordinate_text(coord: Point, dimension: int, *, color=RColor.green, precision: int = 1):
 	def tp_hint(text):
 		if config.teleport_hint_on_coordinate:
-			text.c(RAction.suggest_command, '/execute in {} run tp {} {} {}'.format(get_dim_key(dimension), coord.x, coord.y, coord.z)).h('点击以传送')
+			
+			if config.coordinate_rounding:
+				pos_x = math.floor(coord.x)
+				pos_y = math.ceil(coord.y)
+				pos_z = math.floor(coord.z)
+			else:
+				pos_x = coord.x
+				pos_y = coord.y
+				pos_z = coord.z
+			
+			text.c(RAction.suggest_command, config.click_command.format(dim = get_dim_key(dimension), x = pos_x, y = pos_y, z = pos_z)).h('点击以传送')
 		return text
 
 	def ltr(text):
@@ -73,7 +88,7 @@ def get_dimension_text(dim: Union[int, str]) -> RTextBase:
 		'minecraft:the_end': RColor.dark_purple
 	}
 	dimension_translation = {
-		'minecraft:overworld': 'createWorld.customize.preset.overworld',
+		'minecraft:overworld': 'advancements.overworld.root.title',
 		'minecraft:the_nether': 'advancements.nether.root.title',
 		'minecraft:the_end': 'advancements.end.root.title'
 	}
@@ -88,7 +103,7 @@ def print_location(location: Location, printer: Callable[[RTextBase], Any], *, s
 	if location.desc is not None:
 		name_text.h(location.desc)
 	text = RTextList(
-		name_text.h('点击以显示详情').c(RAction.run_command, '{} info {}'.format(constants.PREFIX, location.name)),
+		name_text.h('点击以显示详情').c(RAction.run_command, '{} info {}'.format(config.plugin_command, location.name)),
 		' ',
 		get_coordinate_text(location.pos, location.dim),
 		' §7@§r ',
@@ -117,7 +132,7 @@ def list_locations(source: CommandSource, *, keyword: Optional[str] = None, page
 		for loc in matched_locations:
 			reply_location_as_item(source, loc)
 	else:
-		command_base = constants.PREFIX
+		command_base = config.plugin_command
 		if keyword is None:
 			command_base += ' list'
 		else:
@@ -202,16 +217,16 @@ def show_location_detail(source: CommandSource, name):
 def on_load(server: PluginServerInterface, old_inst):
 	global config, storage, server_inst
 	server_inst = server
-	config = server.load_config_simple(constants.CONFIG_FILE, target_class=Config)
-	storage.load(os.path.join(server.get_data_folder(), constants.STORAGE_FILE))
+	config = server.load_config_simple(CONFIG_FILE, target_class=Config)
+	storage.load(os.path.join(server.get_data_folder(), config.locations_storage_path))
 
-	server.register_help_message(constants.PREFIX, '路标管理')
+	server.register_help_message(config.plugin_command, '路标管理')
 	search_node = QuotableText('keyword').\
 		runs(lambda src, ctx: list_locations(src, keyword=ctx['keyword'])).\
 		then(Integer('page').runs(lambda src, ctx: list_locations(src, keyword=ctx['keyword'], page=ctx['page'])))
 
 	server.register_command(
-		Literal(constants.PREFIX).
+		Literal(config.plugin_command).
 		runs(show_help).
 		then(Literal('all').runs(lambda src: list_locations(src))).
 		then(
