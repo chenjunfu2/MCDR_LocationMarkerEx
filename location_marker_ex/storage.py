@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 
 from mcdreforged.api.all import *
 
-from location_marker import constants
+from location_marker_ex import constants
 
 
 class Point(Serializable):
@@ -92,7 +92,7 @@ class LocationStorage:
 						data = json.load(handle)
 						locations = deserialize(data, List[Location])
 					except Exception as e:
-						from location_marker.entry import server_inst
+						from location_marker_ex.entry import server_inst
 						server_inst.logger.error('Fail to load {}: {}'.format(file_path, e))
 						server_inst.logger.error('Unknown data: {}'.format(data))
 						needs_overwrite = True
@@ -103,7 +103,7 @@ class LocationStorage:
 				self.save()
 
 	def save(self):
-		from location_marker.entry import server_inst
+		from location_marker_ex.entry import server_inst
 		with self.__lock:
 			file_path = os.path.join(server_inst.get_data_folder(), constants.STORAGE_FILE)
 			with open(file_path, 'w', encoding='utf8') as file:

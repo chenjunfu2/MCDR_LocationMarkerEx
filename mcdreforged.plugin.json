@@ -1,7 +1,7 @@
 {
-	"id": "location_marker",
+	"id": "location_marker_ex",
 	"version": "1.3.2",
-	"name": "Location Marker",
+	"name": "Location Marker Ex",
 	"description": {
 		"en_us": "A server side waypoint manager",
 		"zh_cn": "一个服务端共享路标点管理器"

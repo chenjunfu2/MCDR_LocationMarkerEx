@@ -6,7 +6,7 @@ from typing import Callable, Any, Optional, Union
 
 from mcdreforged.api.all import *
 
-from location_marker.storage import LocationStorage, Point, Location
+from location_marker_ex.storage import LocationStorage, Point, Location
 
 CONFIG_FILE = 'config.json'
 
