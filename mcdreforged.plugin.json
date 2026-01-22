@@ -15,7 +15,7 @@
 		"minecraft_data_api": "*",
 		"mcdreforged": ">=2.0.0-beta.12"
 	},
-	"entrypoint": "location_marker.entry",
+	"entrypoint": "location_marker_ex.entry",
 	"resources": [
 		"LICENSE"
 	]
