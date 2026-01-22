@@ -5,8 +5,6 @@ from typing import List, Dict, Optional
 
 from mcdreforged.api.all import *
 
-from location_marker_ex import constants
-
 
 class Point(Serializable):
 	x: float
@@ -30,6 +28,7 @@ class Location(Serializable):
 
 class LocationStorage:
 	def __init__(self):
+		self.path = ''
 		self.locations: List[Location] = []
 		self.__name_map = {}  # type: Dict[str, Location]
 		self.__lock = RLock()
@@ -78,22 +77,23 @@ class LocationStorage:
 
 	def load(self, file_path: str):
 		with self.__lock:
-			folder = os.path.dirname(file_path)
+			self.path = file_path
+			folder = os.path.dirname(self.path)
 			if not os.path.isdir(folder):
 				os.makedirs(folder)
 			self.locations.clear()
 			needs_overwrite = False
-			if not os.path.isfile(file_path):
+			if not os.path.isfile(self.path):
 				needs_overwrite = True
 			else:
-				with open(file_path, 'r', encoding='utf8') as handle:
+				with open(self.path, 'r', encoding='utf8') as handle:
 					data = None
 					try:
 						data = json.load(handle)
 						locations = deserialize(data, List[Location])
 					except Exception as e:
 						from location_marker_ex.entry import server_inst
-						server_inst.logger.error('Fail to load {}: {}'.format(file_path, e))
+						server_inst.logger.error('Fail to load {}: {}'.format(self.path, e))
 						server_inst.logger.error('Unknown data: {}'.format(data))
 						needs_overwrite = True
 					else:
@@ -103,8 +103,6 @@ class LocationStorage:
 				self.save()
 
 	def save(self):
-		from location_marker_ex.entry import server_inst
 		with self.__lock:
-			file_path = os.path.join(server_inst.get_data_folder(), constants.STORAGE_FILE)
-			with open(file_path, 'w', encoding='utf8') as file:
+			with open(self.path, 'w', encoding='utf8') as file:
 				json.dump(serialize(self.locations), file, indent=4, ensure_ascii=False)
