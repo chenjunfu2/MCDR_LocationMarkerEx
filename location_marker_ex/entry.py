@@ -12,7 +12,7 @@ from location_marker_ex.storage import LocationStorage, Point, Location
 
 class Config(Serializable):
 	plugin_command: str = '!!loc'
-	locations_storage_path: str = './config/locations.json'
+	locations_storage_path: str = './config/location_marker_ex/locations.json'
 	click_command: str = '/execute in {dim} run tp {x} {y} {x}'
 	coordinate_rounding: bool = False
 	teleport_hint_on_coordinate: bool = True
