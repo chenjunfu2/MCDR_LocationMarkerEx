@@ -8,10 +8,20 @@ from mcdreforged.api.all import *
 
 from location_marker_ex.storage import LocationStorage, Point, Location
 
+class Add_Sub_Command():
+	here_command: str = 'here'
 
+class Plugin_Sub_Command(Serializable):
+	list_command: str = 'list'
+	search_command: str = 'sch'
+	add_command: str = 'add'
+	add_sub_cmd: Add_Sub_Command = Add_Sub_Command()
+	delete_command: str = 'del'
+	info_command: str = 'info'
 
 class Config(Serializable):
 	plugin_command: str = '!!loc'
+	plugin_sub_cmd: Plugin_Sub_Command = Plugin_Sub_Command()
 	locations_storage_path: str = './config/location_marker_ex/locations.json'
 	click_command: str = '/execute in {dim} run tp {x} {y} {z}'
 	coordinate_rounding: bool = False
@@ -31,17 +41,28 @@ def show_help(source: CommandSource):
 --------- MCDR 路标插件 v{2} ---------
 一个位于服务端的路标管理插件
 §7{0}§r 显示此帮助信息
-§7{0} list §6[<可选页号>]§r 列出所有路标
-§7{0} search §3<关键字> §6[<可选页号>]§r 搜索坐标，返回所有匹配项
-§7{0} add §b<路标名称> §e<x> <y> <z> <维度id> §6[<可选注释>]§r 加入一个路标
-§7{0} add §b<路标名称> §ehere §6[<可选注释>]§r 加入自己所处位置、维度的路标
-§7{0} del §b<路标名称>§r 删除路标，要求全字匹配
-§7{0} info §b<路标名称>§r 显示路标的详情等信息
-§7{0} §3<关键字> §6[<可选页号>]§r 同 §7{0} search§r
+§7{0} {list} §6[<可选页号>]§r 列出所有路标
+§7{0} §3<关键字> §6[<可选页号>]§r 与{search}命令相同
+§7{0} {search} §3<关键字> §6[<可选页号>]§r 搜索坐标，返回所有匹配项
+§7{0} {add} §b<路标名称> §e<x> <y> <z> <维度id> §6[<可选注释>]§r 加入一个路标
+§7{0} {add} §b<路标名称> §e{add_here} §6[<可选注释>]§r 加入自己所处位置、维度的路标
+§7{0} {delete} §b<路标名称>§r 删除路标，要求全字匹配
+§7{0} {info} §b<路标名称>§r 显示路标的详情等信息
 其中：
 当§6可选页号§r被指定时，将以每{1}个路标为一页，列出指定页号的路标
 §3关键字§r以及§b路标名称§r为不包含空格的一个字符串，或者一个被""括起的字符串
-'''.format(config.plugin_command, config.item_per_page, server_inst.get_self_metadata().version).splitlines(True)
+'''.format(
+		config.plugin_command,
+		config.item_per_page,
+		server_inst.get_self_metadata().version,
+		list = config.plugin_sub_cmd.list_command,
+		search = config.plugin_sub_cmd.search_command,
+		add = config.plugin_sub_cmd.add_command,
+		add_here = config.plugin_sub_cmd.add_sub_cmd.here_command,
+		delete = config.plugin_sub_cmd.delete_command,
+		info = config.plugin_sub_cmd.info_command
+	).splitlines(True)
+	
 	help_msg_rtext = RTextList()
 	for line in help_msg_lines:
 		result = re.search(r'(?<=§7)!!loc[\w ]*(?=§)', line)
@@ -101,7 +122,7 @@ def print_location(location: Location, printer: Callable[[RTextBase], Any], *, s
 	if location.desc is not None:
 		name_text.h(location.desc)
 	text = RTextList(
-		name_text.h('点击以显示详情').c(RAction.run_command, '{} info {}'.format(config.plugin_command, location.name)),
+		name_text.h('点击以显示详情').c(RAction.run_command, '{} {} {}'.format(config.plugin_command, config.plugin_sub_cmd.info_command, location.name)),
 		' ',
 		get_coordinate_text(location.pos, location.dim),
 		' §7@§r ',
@@ -132,9 +153,9 @@ def list_locations(source: CommandSource, *, keyword: Optional[str] = None, page
 	else:
 		command_base = config.plugin_command
 		if keyword is None:
-			command_base += ' list'
+			command_base += ' {}'.format(config.plugin_sub_cmd.list_command)
 		else:
-			command_base += ' search {}'.format(json.dumps(keyword, ensure_ascii=False))
+			command_base += ' {} {}'.format(config.plugin_sub_cmd.search_command, json.dumps(keyword, ensure_ascii=False))
 		left, right = (page - 1) * config.item_per_page, page * config.item_per_page
 		for i in range(left, right):
 			if 0 <= i < matched_count:
@@ -227,18 +248,17 @@ def on_load(server: PluginServerInterface, old_inst):
 	server.register_command(
 		Literal(config.plugin_command).
 		runs(show_help).
-		then(Literal('all').runs(lambda src: list_locations(src))).
 		then(
-			Literal('list').runs(lambda src: list_locations(src)).
+			Literal(config.plugin_sub_cmd.list_command).runs(lambda src: list_locations(src)).
 			then(Integer('page').runs(lambda src, ctx: list_locations(src, page=ctx['page'])))
 		).
-		then(Literal('search').then(search_node)).
+		then(Literal(config.plugin_sub_cmd.search_command).then(search_node)).
 		then(search_node).  # for lazyman
 		then(
-			Literal('add').then(
+			Literal(config.plugin_sub_cmd.add_command).then(
 				QuotableText('name').
 				then(
-					Literal('here').runs(lambda src, ctx: add_location_here(src, ctx['name'])).
+					Literal(config.plugin_sub_cmd.add_sub_cmd.here_command).runs(lambda src, ctx: add_location_here(src, ctx['name'])).
 					then(GreedyText('desc').runs(lambda src, ctx: add_location_here(src, ctx['name'], ctx['desc'])))
 				).
 				then(
@@ -254,12 +274,12 @@ def on_load(server: PluginServerInterface, old_inst):
 			)
 		).
 		then(
-			Literal('del').then(
+			Literal(config.plugin_sub_cmd.delete_command).then(
 				QuotableText('name').runs(lambda src, ctx: delete_location(src, ctx['name']))
 			)
 		).
 		then(
-			Literal('info').then(
+			Literal(config.plugin_sub_cmd.info_command).then(
 				QuotableText('name').runs(lambda src, ctx: show_location_detail(src, ctx['name']))
 			)
 		)

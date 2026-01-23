@@ -3,7 +3,7 @@
 [仓库链接](https://github.com/chenjunfu2/MCDR_LocationMarkerEx)
 
 ## 配置文件新增的内容
-- 插件命令
+- 插件所有命令
 - 路径点存储位置
 - 传送命令
 - 坐标取整
