@@ -1,5 +1,6 @@
 # 地点标记
---------
+
+[仓库链接](https://github.com/chenjunfu2/MCDR_LocationMarkerEx)
 
 ## 配置文件新增的内容
 - 插件命令
