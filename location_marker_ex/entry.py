@@ -216,7 +216,7 @@ def on_load(server: PluginServerInterface, old_inst):
 	global config, storage, server_inst, config_file_path, api
 	server_inst = server
 	config = server.load_config_simple(config_file_path, target_class=Config)
-	storage.load(os.path.join(server.get_data_folder(), config.locations_storage_path))
+	storage.load(config.locations_storage_path)
 	api = server.get_plugin_instance('minecraft_data_api')
 
 	server.register_help_message(config.plugin_command, '路标管理')
