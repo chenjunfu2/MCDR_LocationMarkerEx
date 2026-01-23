@@ -8,7 +8,7 @@ from mcdreforged.api.all import *
 
 from location_marker_ex.storage import LocationStorage, Point, Location
 
-class Add_Sub_Command():
+class Add_Sub_Command(Serializable):
 	here_command: str = 'here'
 
 class Plugin_Sub_Command(Serializable):
