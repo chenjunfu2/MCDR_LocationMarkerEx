@@ -18,4 +18,4 @@
 ## 需求
 
 - [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) >= 2.0.0
-- [Minecraft 数据API](https://github.com/MCDReforged/MinecraftDataAPI)
+- [Minecraft Data API](https://github.com/MCDReforged/MinecraftDataAPI)

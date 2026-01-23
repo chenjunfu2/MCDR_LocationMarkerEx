@@ -8,7 +8,7 @@ from mcdreforged.api.all import *
 
 from location_marker_ex.storage import LocationStorage, Point, Location
 
-CONFIG_FILE = 'config.json'
+
 
 class Config(Serializable):
 	plugin_command: str = '!!loc'
@@ -22,6 +22,8 @@ class Config(Serializable):
 config: Config
 storage = LocationStorage()
 server_inst: PluginServerInterface
+config_file_path = 'config.json'
+api = None
 
 
 def show_help(source: CommandSource):
@@ -83,17 +85,13 @@ def get_dim_key(dim: Union[int, str]) -> str:
 def get_dimension_text(dim: Union[int, str]) -> RTextBase:
 	dim_key = get_dim_key(dim)
 	dimension_color = {
-		'minecraft:overworld': RColor.dark_green,
-		'minecraft:the_nether': RColor.dark_red,
-		'minecraft:the_end': RColor.dark_purple
+		0: RColor.dark_green,
+		-1: RColor.dark_red,
+		1: RColor.dark_purple
 	}
-	dimension_translation = {
-		'minecraft:overworld': 'advancements.overworld.root.title',
-		'minecraft:the_nether': 'advancements.nether.root.title',
-		'minecraft:the_end': 'advancements.end.root.title'
-	}
-	if dim_key in dimension_color:
-		return RTextTranslation(dimension_translation[dim_key], color=dimension_color[dim_key]).h(dim_key)
+	
+	if dim in dimension_color:
+		return RTextTranslation(api.get_dimension_translation_text(dim).to_plain_text() , color=dimension_color[dim]).h(dim_key)
 	else:
 		return RText(dim_key, color=RColor.gray).h(dim_key)
 
@@ -183,7 +181,7 @@ def add_location_here(source: CommandSource, name, desc=None):
 	if not isinstance(source, PlayerCommandSource):
 		source.reply('仅有玩家允许使用本指令')
 		return
-	api = source.get_server().get_plugin_instance('minecraft_data_api')
+	
 	pos = api.get_player_coordinate(source.player)
 	dim = api.get_player_dimension(source.player)
 	add_location(source, name, pos.x, pos.y, pos.z, dim, desc)
@@ -215,10 +213,11 @@ def show_location_detail(source: CommandSource, name):
 
 
 def on_load(server: PluginServerInterface, old_inst):
-	global config, storage, server_inst
+	global config, storage, server_inst, config_file_path, api
 	server_inst = server
-	config = server.load_config_simple(CONFIG_FILE, target_class=Config)
+	config = server.load_config_simple(config_file_path, target_class=Config)
 	storage.load(os.path.join(server.get_data_folder(), config.locations_storage_path))
+	api = server.get_plugin_instance('minecraft_data_api')
 
 	server.register_help_message(config.plugin_command, '路标管理')
 	search_node = QuotableText('keyword').\
