@@ -1,6 +1,5 @@
 import json
 import math
-import os
 import re
 from typing import Callable, Any, Optional, Union
 
@@ -18,6 +17,7 @@ class Plugin_Sub_Command(Serializable):
 	add_sub_cmd: Add_Sub_Command = Add_Sub_Command()
 	delete_command: str = 'del'
 	info_command: str = 'info'
+	reload_command: str = 'reload'
 
 class Config(Serializable):
 	plugin_command: str = '!!loc'
@@ -48,6 +48,7 @@ def show_help(source: CommandSource):
 §7{0} {add} §b<路标名称> §e{add_here} §6[<可选注释>]§r 加入自己所处位置、维度的路标
 §7{0} {delete} §b<路标名称>§r 删除路标，要求全字匹配
 §7{0} {info} §b<路标名称>§r 显示路标的详情等信息
+§7{0} {reload} 从磁盘中重新加载路标文件
 其中：
 当§6可选页号§r被指定时，将以每{1}个路标为一页，列出指定页号的路标
 §3关键字§r以及§b路标名称§r为不包含空格的一个字符串，或者一个被""括起的字符串
@@ -60,7 +61,8 @@ def show_help(source: CommandSource):
 		add = config.plugin_sub_cmd.add_command,
 		add_here = config.plugin_sub_cmd.add_sub_cmd.here_command,
 		delete = config.plugin_sub_cmd.delete_command,
-		info = config.plugin_sub_cmd.info_command
+		info = config.plugin_sub_cmd.info_command,
+		reload = config.plugin_sub_cmd.reload_command
 	).splitlines(True)
 	
 	help_msg_rtext = RTextList()
@@ -233,6 +235,9 @@ def show_location_detail(source: CommandSource, name):
 		source.reply('未找到路标§b{}§r'.format(name))
 
 
+def reload_loactions(src, ctx):
+	storage.load(config.locations_storage_path)
+
 def on_load(server: PluginServerInterface, old_inst):
 	global config, storage, server_inst, config_file_path, api
 	server_inst = server
@@ -282,5 +287,8 @@ def on_load(server: PluginServerInterface, old_inst):
 			Literal(config.plugin_sub_cmd.info_command).then(
 				QuotableText('name').runs(lambda src, ctx: show_location_detail(src, ctx['name']))
 			)
+		).
+		then(
+			Literal(config.plugin_sub_cmd.reload_command).runs(lambda src, ctx : reload_loactions(src, ctx))
 		)
 	)
