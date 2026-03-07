@@ -235,8 +235,11 @@ def show_location_detail(source: CommandSource, name):
 		source.reply('未找到路标§b{}§r'.format(name))
 
 
-def reload_loactions(src, ctx):
+def reload_loactions(source: CommandSource, ctx):
+	global config, storage
+	source.reply(RText('重载中...', color=RColor.yellow))
 	storage.load(config.locations_storage_path)
+	source.reply(RText('已重载！', color=RColor.green))
 
 def on_load(server: PluginServerInterface, old_inst):
 	global config, storage, server_inst, config_file_path, api
