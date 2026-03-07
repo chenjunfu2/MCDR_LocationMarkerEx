@@ -74,6 +74,10 @@ class LocationStorage:
 		ret = self.__remove(target_name)
 		self.save()
 		return ret
+	
+	def clear(self):
+		self.locations.clear()
+		self.__name_map.clear()
 
 	def load(self, file_path: str):
 		with self.__lock:
@@ -81,7 +85,10 @@ class LocationStorage:
 			folder = os.path.dirname(self.path)
 			if not os.path.isdir(folder):
 				os.makedirs(folder)
-			self.locations.clear()
+			
+			#清理
+			self.clear()
+		
 			needs_overwrite = False
 			if not os.path.isfile(self.path):
 				needs_overwrite = True
