@@ -253,7 +253,7 @@ def on_load(server: PluginServerInterface, old_inst):
 	server_inst = server
 	config = server.load_config_simple(config_file_path, target_class=Config)
 	
-	if server.is_server_startup() or server.is_server_running():#服务端如果正在启动或已经启动，直接加载路径点，否则延迟加载
+	if server.is_server_running() or server.is_server_startup():#服务端如果正在启动或已经启动，直接加载路径点，否则延迟加载
 		storage.load(config.locations_storage_path)
 		server.logger.info('已加载路径点！')
 		
