@@ -27,6 +27,7 @@ class Config(Serializable):
 	coordinate_rounding: bool = False
 	teleport_hint_on_coordinate: bool = True
 	item_per_page: int = 10
+	auto_reload_locations_on_server_start_pre: bool = True
 
 
 config: Config
@@ -240,12 +241,22 @@ def reload_loactions(source: CommandSource, ctx):
 	source.reply(RText('重载中...', color=RColor.yellow))
 	storage.load(config.locations_storage_path)
 	source.reply(RText('已重载！', color=RColor.green))
+	
+def on_server_start_pre(server: PluginServerInterface):
+	global config, storage
+	if config.auto_reload_locations_on_server_start_pre:
+		storage.load(config.locations_storage_path)
+		server.logger.info('已加载路径点！')
 
 def on_load(server: PluginServerInterface, old_inst):
 	global config, storage, server_inst, config_file_path, api
 	server_inst = server
 	config = server.load_config_simple(config_file_path, target_class=Config)
-	storage.load(config.locations_storage_path)
+	
+	if server.is_server_startup() or server.is_server_running():#服务端如果正在启动或已经启动，直接加载路径点，否则延迟加载
+		storage.load(config.locations_storage_path)
+		server.logger.info('已加载路径点！')
+		
 	api = server.get_plugin_instance('minecraft_data_api')
 
 	server.register_help_message(config.plugin_command, '路标管理')
